@@ -59,7 +59,8 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'timeflip_check = pytimefliplib.scripts.check:main'
+            'timeflip-check = pytimefliplib.scripts.check:main',
+            'timeflip-set-name = pytimefliplib.scripts.set_name:main'
         ]
     },
 )

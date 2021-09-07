@@ -404,6 +404,19 @@ class AsyncClient:
         self.auto_pause_time = time
 
     @requires_login
+    async def set_name(self, name: str) -> bool:
+        """Set a new name to the device
+        """
+
+        name = name.encode('ascii')
+        if len(name) > 19:
+            raise TimeFlipCommandError('set_name')
+
+        command = [0x15, len(name)]
+        command.extend(name)
+        return await self.write_command(_com(command), check=True)
+
+    @requires_login
     async def history(self) -> List[Tuple[int, int, bytearray]]:
         """Get the history
 
