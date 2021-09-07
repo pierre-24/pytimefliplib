@@ -40,5 +40,6 @@ convenient scripts to interact with the device:
   (...)
   ```
 
-The options you have to gives to every scripts are `-a`, the MAC address of the device
-and, eventually, `-p`, the password (if it differs from the default password, `000000`)
+The options you have to give to every script are:
++ `-a`, the MAC address of the device and, eventually,
++ `-p`, the password (if it differs from the default password, `000000`).

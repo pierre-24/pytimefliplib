@@ -410,7 +410,7 @@ class AsyncClient:
 
         name = name.encode('ascii')
         if len(name) > 19:
-            raise TimeFlipCommandError('set_name')
+            raise ValueError('"{}" is too long'.format(name))
 
         command = [0x15, len(name)]
         command.extend(name)
