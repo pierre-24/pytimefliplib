@@ -13,6 +13,17 @@ pip install --upgrade git+https://github.com/pierre-24/pytimefliplib.git
 Provides, with [a simple Python API](./pytimefliplib/async_client.py), 
 convenient scripts to interact with the device:
 
+- Discover TimeFlip devices:
+  ```
+  $ timeflip-discover 
+  Looking around (this can take up to 1 minute) ... Done!
+  Results::
+  - TimeFlip devices: 0C:61:CF:C7:77:71 (TimeFlip)
+  - Other BLE devices: (redacted)
+  - Other devices: (redacted)
+  ```
+  The MAC address of my device is thus `0C:61:CF:C7:77:71`.
+
 - Change its password:
   ```
   $ timeflip-set-passwd -a 98:07:2D:EE:21:0E 123456
@@ -49,6 +60,6 @@ convenient scripts to interact with the device:
   (...)
   ```
 
-As you can see, the options you have to give to every script are:
+As you can see, the options you have to give to every script (except `timeflip-discover`, of course) are:
 + `-a`, the MAC address of the device and, eventually,
 + `-p`, the password (if it differs from the default password, `000000`).
