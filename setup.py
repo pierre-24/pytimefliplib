@@ -60,7 +60,8 @@ setup(
     entry_points={
         'console_scripts': [
             'timeflip-check = pytimefliplib.scripts.check:main',
-            'timeflip-set-name = pytimefliplib.scripts.set_name:main'
+            'timeflip-set-name = pytimefliplib.scripts.set_name:main',
+            'timeflip-set-passwd = pytimefliplib.scripts.set_password:main'
         ]
     },
 )

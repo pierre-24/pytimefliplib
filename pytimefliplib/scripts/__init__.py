@@ -7,7 +7,7 @@ from bleak import BleakError
 from typing import Callable, Coroutine
 
 import pytimefliplib
-from pytimefliplib.async_client import AsyncClient, DEFAULT_PASSWORD, TimeFlipCommandError
+from pytimefliplib.async_client import AsyncClient, DEFAULT_PASSWORD, TimeFlipRuntimeError
 
 
 class RuntimeClientError(Exception):
@@ -46,7 +46,7 @@ async def connect_and_run(
 
             await actions_on_client(client, args)
 
-    except (BleakError, RuntimeClientError, TimeFlipCommandError) as e:
+    except (BleakError, TimeFlipRuntimeError, RuntimeClientError) as e:
         print('communication error: {}'.format(e), file=sys.stderr)
 
 

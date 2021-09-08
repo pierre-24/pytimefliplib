@@ -46,15 +46,21 @@ COMMANDS = {
 }
 
 
-class NotConnectedError(Exception):
+class TimeFlipRuntimeError(Exception):
     pass
 
 
-class NotLoggedInError(Exception):
-    pass
+class NotConnectedError(TimeFlipRuntimeError):
+    def __init__(self):
+        super().__init__('Not connected to device')
 
 
-class TimeFlipCommandError(Exception):
+class NotLoggedInError(TimeFlipRuntimeError):
+    def __init__(self):
+        super().__init__('Not logged in (incorrect password?)')
+
+
+class TimeFlipCommandError(TimeFlipRuntimeError):
 
     def __init__(self, command):
         super().__init__('Error while executing {}'.format(command))
@@ -310,8 +316,6 @@ class AsyncClient:
 
         await self.base_char_write(CHARACTERISTICS['command_input'], command)
 
-        # print('command is', command)
-
         if check:
             data = await self.base_char_read(CHARACTERISTICS['command_input'])
             return data[0] == command[0] and data[-1] == 0x02
@@ -321,17 +325,26 @@ class AsyncClient:
     @requires_login
     async def write_command_and_read_output(self, command: bytearray, check=False) -> bytearray:
         """Write a command (in 0x6f54), and then read result (in 0x6f53). Requires login !
+
+        If len of result is not 21, the password is probably incorrect, so raises ``NotLoggedInError``
         """
 
         went_ok = await self.write_command(command, check)
         if not went_ok:
             raise TimeFlipCommandError(command)
 
-        return await self.base_char_read(CHARACTERISTICS['command_result'])
+        data = await self.base_char_read(CHARACTERISTICS['command_result'])
+
+        if len(data) != 21:
+            raise NotLoggedInError()
+
+        return data
 
     @requires_login
     async def status(self) -> dict:
         """Get status (command 0x10) on pause, lock and auto-pause. Requires login !
+
+        If not logged in properly, the data size is not 21, so raises ``NotLoggedIn``
 
         :return: a dict containing the pause, lock and auto-pause status
         """
@@ -405,7 +418,7 @@ class AsyncClient:
 
     @requires_login
     async def set_name(self, name: str) -> bool:
-        """Set a new name to the device
+        """Set a new name to the device (0x15)
         """
 
         name = name.encode('ascii')
@@ -414,6 +427,21 @@ class AsyncClient:
 
         command = [0x15, len(name)]
         command.extend(name)
+        return await self.write_command(_com(command), check=True)
+
+    @requires_login
+    async def set_password(self, password: str) -> bool:
+        """Set a new password (0x30)
+
+        :param password: 6-letter long password
+        """
+
+        password = password.encode('ascii')
+        if len(password) != 6:
+            raise ValueError('Password should be 6 letter long')
+
+        command = [0x30]
+        command.extend(password)
         return await self.write_command(_com(command), check=True)
 
     @requires_login

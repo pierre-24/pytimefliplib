@@ -5,6 +5,7 @@ from pytimefliplib.scripts import run_on_client
 
 
 async def actions_on_client(client: AsyncClient, args: argparse.Namespace):
+
     # get characteristics
     print('TimeFlip characteristics::')
     print('- Name:', await client.device_name())

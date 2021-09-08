@@ -13,9 +13,18 @@ pip install --upgrade git+https://github.com/pierre-24/pytimefliplib.git
 Provides, with [a simple Python API](./pytimefliplib/async_client.py), 
 convenient scripts to interact with the device:
 
+- Change its password:
+  ```
+  $ timeflip-set-passwd -a 98:07:2D:EE:21:0E 123456
+  ! Connected to 98:07:2D:EE:21:0E
+  ! Password communicated
+  ! Changed password to "123456"
+  ```
+  Don't forget to use `-p` for further interactions!
+
 - Change its name:
   ```
-  $ timeflip-set-name -a 98:07:2D:EE:21:0E MyFlip
+  $ timeflip-set-name -a 98:07:2D:EE:21:0E -p 123456 MyFlip
   ! Connected to 98:07:2D:EE:21:0E
   ! Password communicated
   ! Changed device name from "TimeFlip" to "MyFlip"
@@ -23,7 +32,7 @@ convenient scripts to interact with the device:
 
 - Get its status:
   ```
-  $ timeflip-check -a 98:07:2D:EE:21:0E
+  $ timeflip-check -a 98:07:2D:EE:21:0E -p 123456
   ! Connected to 98:07:2D:EE:21:0E
   ! Password communicated
   TimeFlip characteristics::
@@ -40,6 +49,6 @@ convenient scripts to interact with the device:
   (...)
   ```
 
-The options you have to give to every script are:
+As you can see, the options you have to give to every script are:
 + `-a`, the MAC address of the device and, eventually,
 + `-p`, the password (if it differs from the default password, `000000`).
