@@ -62,15 +62,16 @@ Command (`0xXX`) | Name | Arguments | Output (in `0x6f53`) | Note
 `0x05` | Auto-pause | `0xXXXX`: two bytes number representing the number of minutes | *no* | Automatically set the time count on pause after the given number of minutes
 `0x06` | Pause | `0x01` (pause on) or `0x02` (pause off) | *no* | Facet continue to be notified, but in history, facet value will be 63.
 `0x10` | Status request | *no* | `0xXXYYZZZZ` (4 bytes), where `XX` is `0x01` if device is locked (`0x02` if not), `YY` is `0x01` if pause is set (`0x02` if not) and `ZZZZ` is the auto-pause timer (2 bytes) | -
+`0x15` | Device name | `0xXXYY...`, where `XX` is the number of characters that the name contains (max 19) and `YY..` is the device name (ASCII-encoded) | no | -
 `0x30` | Set new password | `0xXXXXXXXXXXXX`: 6 bytes ASCII-encoded string | *no* | -
 
-`0x15` (write name) and `0x50` (reset firmware) are also available, but were not tested.
+`0x50` (reset firmware) is also available, but was not tested.
  
 ### About history
  
-History is read from packages of 21 bytes (maximum of `0xf653` characteristic).
+History is read from packages of 21 bytes (maximum size of the `0xf653` characteristic).
 Every package contains 7 history blocks of 3 bytes each.
-The structure of a history block seems to be the following:
+The structure of a history block is the following:
  
 Bit number | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 
 -----------|---|---|---|---|---|---|---|---|---|---|----|----|----|----|----|----|----|----|----|----|----|----|----|----
@@ -79,7 +80,7 @@ Duration   | x | x | x | x | x | x | x | x | x | x | x  | x  | x  | x  | x  | x 
 Facet value|   |   |   |   |   |   |   |   |   |   |    |    |    |    |    |    | x  | x  | x  | x  | x  | x 
 
 
-Thus, the two first bytes (plus the additional 2 last bytes) contains the duration during which the facet was up.
+Thus, the two first bytes (plus the additional 2 last bytes) contains the duration (in second) during which the facet was up.
 The facet is in the last byte, but start at position 16 and end at position 21 (included).
 
 To get all the history packages, continuously read value of `0x6f53`, until you get a package full of zeros.
