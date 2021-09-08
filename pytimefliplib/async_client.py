@@ -1,4 +1,3 @@
-import asyncio
 from bleak import BleakClient
 from functools import wraps
 from typing import Callable, Any, List, Tuple
@@ -98,7 +97,7 @@ class AsyncClient:
     """TimeFlip asynchronous client
     """
 
-    def __init__(self, address: str, loop: asyncio.events.AbstractEventLoop = None):
+    def __init__(self, address: str):
 
         self.address = address
         self.client = None
