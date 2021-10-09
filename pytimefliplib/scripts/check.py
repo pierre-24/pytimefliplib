@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime, timedelta
 
 from pytimefliplib.async_client import AsyncClient
 from pytimefliplib.scripts import run_on_client
@@ -18,8 +19,14 @@ async def actions_on_client(client: AsyncClient, args: argparse.Namespace):
 
     # print history
     print('History::')
-    for facet, duration, _ in await client.history():
-        print('- Facet={}, during {} seconds'.format(facet, duration))
+    start = datetime.now()
+    history = await client.history()
+    total_time = sum(h[1] for h in history)
+    start -= timedelta(microseconds=start.microsecond) + timedelta(seconds=total_time)
+    for facet, duration, orig in history:
+        end = start + timedelta(seconds=duration)
+        print('- Facet={} ({} seconds): from {} to {}'.format(facet, duration, start.isoformat(), end.isoformat()))
+        start = end
 
 
 def main():
