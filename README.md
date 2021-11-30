@@ -60,6 +60,14 @@ convenient scripts to interact with the device:
   (...)
   ```
 
+  + Clear its history
+  ```
+  $ timeflip-clear-history -a 98:07:2D:EE:21:0E -p 123456
+  ! Connected to 98:07:2D:EE:21:0E
+  ! Password communicated
+  ! Cleared history
+  ```
+
 As you can see, the options you have to give to every script (except `timeflip-discover`, of course) are:
 + `-a`, the MAC address of the device and, eventually,
 + `-p`, the password (if it differs from the default password, `000000`).
