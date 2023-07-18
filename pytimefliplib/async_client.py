@@ -75,6 +75,25 @@ CHARACTERISTIC_WRITE_LENGTHS = {
     'history_data':         20
 }
 
+CHARACTERISTIC_NOTIFY_LENGTHS = {
+    # generic
+    'battery_level':        1,
+    'firmware_revision':    -1,
+    'device_name':          -1,
+
+    # timeflip
+    'event_data':           20,
+    'accelerometer_data':   -1, # deprecated
+    'facet':                1,
+    'command_result':       20,
+    'command_input':        20,
+    'double_tap':           -1,
+    'system_state':         4,
+    'calibration_version':  -1, # deprecated
+    'password_input':       6,
+    'history_data':         20
+}
+
 def _com(x):
     return bytearray([x] if type(x) is int else x)
 
@@ -119,9 +138,16 @@ class IncorrectPasswordError(TimeFlipRuntimeError):
         super().__init__('Incorrect password for device')
 
 class TimeFlipCommandError(TimeFlipRuntimeError):
-
     def __init__(self, command):
         super().__init__('Error while executing {}'.format(command))
+
+class UnimplementedFunctionError(TimeFlipRuntimeError):
+    def __init__(self):
+        super().__init__('Function not implemented in this firmware version')
+
+class DeprecatedFunctionError(TimeFlipRuntimeError):
+    def __init__(self):
+        super().__init__('Function deprecated in this firmware version')
 
 
 def requires_connection(f):
@@ -305,7 +331,39 @@ class AsyncClient:
         # Firmware string like FW_vX.XX, so get a useable
         # float value to compare against
         firmware_revision = await self.firmware_revision()
-        self.firmware_version = float(firmware_revision[5:8])
+        self.firmware_version = float(firmware_revision[4:8])
+
+        if self.firmware_version >= 3.47:
+            # Consistent functions between versions
+            self.get_status = self.get_status_v3
+            self.set_paused = self.set_pause_v3
+            self.set_lock = self.set_lock_v3
+            self.set_auto_pause = self.set_auto_pause_v3
+            self.set_name = self.set_name_v3
+            self.set_password = self.set_password_v3
+
+            # New or changed in version 4
+            self.get_time = self.get_time_v4
+            self.set_time = self.set_time_v4
+            self.set_brightness = self.set_brightness_v4
+            self.set_blink_frequency = self.set_blink_frequency_v4
+            self.set_color = self.set_color_v4
+            self.set_facet = self.set_facet_v4
+            self.get_facet = self.get_facet_v4
+            self.get_all_facets = self.get_all_facets_v4
+            self.get_event = self.get_event_v4
+            self.get_history = self.get_history_v4
+            self.get_all_history = self.get_all_history_v4
+
+            # Deprecated in version 4
+            self.get_calibration_version = self.deprecated_function
+            self.set_calibration_version = self.deprecated_function
+        else:
+            self.get_status = self.get_status_v3
+            self.get_calibration_version = \
+                self.get_calibration_version_v3
+            self.set_calibration_version = \
+                self.set_calibration_version_v3
 
         if not await self.login(password):
             raise NotLoggedInError()
@@ -320,7 +378,7 @@ class AsyncClient:
 
         await self.client.start_notify(CHARACTERISTICS['facet'], custom_facet_callback)
 
-        current_status = await self.status()
+        current_status = await self.get_status()
         self.paused = current_status['paused']
         self.locked = current_status['locked']
         self.auto_pause_time = current_status['auto_pause_time']
@@ -341,57 +399,7 @@ class AsyncClient:
 
         return self.current_facet_value
 
-    @requires_login
-    async def calibration_version(self) -> int:
-        """Get calibration version. Requires login !
-
-        :return: an integer
-        """
-
-        return int.from_bytes(await self.base_char_read('calibration_version'), TIMEFLIP_ENDIANNESS)
-
-    @requires_login
-    async def set_calibration_version(self, version: int) -> None:
-        """Set calibration version
-
-        :param version: the version (any number on 4 bytes)
-        """
-
-        if version >= 2**32:
-            raise ValueError('{} is too large (should be 4 bytes max)'.format(version))
-
-        await self.base_char_write(
-            CHARACTERISTICS['calibration_version'], bytearray(int.to_bytes(version, 4, TIMEFLIP_ENDIANNESS)))
-
-    @requires_login
-    async def accelerometer_value(self, multiplier: float = 1.0) -> Tuple[float, float, float]:
-        """Get accelerometer vector
-
-        .. note::
-
-            By reading the text on the chip, I found out it is (probably) a
-            `LIS3DH accelerometer <https://www.st.com/resource/en/datasheet/lis3dh.pdf>`_, (probably) operating at 2G
-            (since value should be about ``(0.0, 0.0, 1.0)`` when the chip is on a flat surface).
-            Values are thus **little**-endian (documentation says big!) signed values, that needs to be divided by
-            16384 to give the acceleration (= gravity) vector in unit of G (= 9.81 m/s²).
-
-            (See the CircuitPython
-            `code <https://github.com/adafruit/Adafruit_CircuitPython_LIS3DH/blob/master/adafruit_lis3dh.py>`_
-            for more details)
-
-        :param multiplier: multiply all values of the vector
-               (if one wants to get acceleration in standard units, put 9.81 as a value).
-        :return: accelerometer vector, in unit of G.
-        """
-
-        divider = 2**14
-
-        data = await self.base_char_read('accelerometer_data')
-        ax, ay, az = struct.unpack('<hhh', data)
-
-        return ax / divider * multiplier, ay / divider * multiplier, az / divider * multiplier
-
-    # commands:
+    # utilities:
 
     @requires_login
     async def write_command(self, command: bytearray, check=True) -> bool:
@@ -431,8 +439,252 @@ class AsyncClient:
 
         return data
 
+
+    # version 4 commands
+
+    """
+    Get Time, reads the internal clock of the Timeflip. 
+
+    Written to the command_input characteristic (1 byte):
+        0x07
+
+        0x07 - command code
+    
+    Read from the command_result characteristic (5 bytes):
+        0x07 0xXX 0xXX 0xXX 0xXX
+
+        0x07 - command code
+        0xXX 0xXX 0xXX 0xXX - 64-bit integer containing the number of
+               seconds since 1970
+    """
     @requires_login
-    async def status(self) -> dict:
+    async def get_time_v4(self) -> int:
+        command = bytearray(1)
+        command[0] = COMMANDS['time_read']
+
+        data = await write_command_and_read_output(command)
+        return int.from_bytes(data[1:5], TIMEFLIP_ENDIANNESS)
+
+    """
+    Set Time, sets the internal clock of the Timeflip. 
+
+    Written to the command_input characteristic (5 bytes):
+
+        0x08 - command code
+        0xXX - 64-bit integer containing the number of 
+        0xXX   seconds since 1970    
+        0xXX 
+        0xXX
+               
+    """
+    @requires_login
+    async def set_time_v4(self, time) -> None:
+        command = bytearray(5)
+        command[0] = COMMANDS['time_write']
+        command[1:5] = time.to_bytes(4, TIMEFLIP_ENDIANNESS)
+
+        await write_command(command)
+
+    """
+    Set Brightness, sets the brightness of the Timeflip LEDs.
+
+    Written to the command_input characteristic (2 bytes):
+
+        0x09 - command code
+        0xXX - brightness percent, (0 - 100)
+
+    """
+    @requires_login
+    async def set_brightness_v4(self, brightness) -> None:
+        command = bytearray(2)
+        command[0] = COMMANDS['brightness_set']
+        command[1] = brightness
+
+        await write_command(command)
+
+    """
+    Set Blink Frequency, sets the delay between conseutive LED flashes
+    from the Timeflip
+
+    Written to the command_input characteristic (2 bytes):
+
+        0x0A - command code
+        0xXX - delay in seconds, (5 - 60)
+
+    """
+    @requires_login
+    async def set_blink_frequency_v4(self, blink_frequency) -> None:
+        command = bytearray(2)
+        command[0] = COMMANDS['blink_freq_set']
+        command[1] = brightness
+
+        await write_command(command)
+
+    """
+    Set Facet Color, sets the color in RGB format for a given facet
+    of the Timeflip.
+
+    Written to the command_input characteristic (7 bytes):
+
+        0x11 - command code
+        0xNN - facet to set the color of (0-24)
+        0xRR - amount of red (0-255)
+        0xGG - amount of green (0-255)
+        0xBB - amount of blue (0-255)
+
+    """
+    @requires_login
+    async def set_color_v4(self, facet: int, rgb: Tuple[int, int, int]):
+        command = bytearray(5)
+        command[0] = COMMANDS['color_set']
+        command[1] = facet
+        command[2] = rgb[0]
+        command[3] = rgb[1]
+        command[4] = rgb[2]
+
+        await write_command(command)
+
+    """
+    Set Facet command. Used to set the mode of a given facet and the pomodoro
+    time limit, if it is in pomodoro mode.
+
+    Written to the command_input characteristic (7 bytes):
+
+        0x13 0xNN 0xPP 0xTT 0xTT 0xTT 0xTT
+
+        0x13 - command code
+        0xNN - facet number (0 - 24)
+        0xPP - mode 
+            0 for normal
+            1 for pomodoro
+        0xTT 0xTT 0xTT 0xTT - 64-bit unsigned integer for the pomodoro
+                              timer limit in seconds
+
+    """
+    @requires_login
+    async def set_facet_v4(self, facet: int, mode: int, pomodoro: int) -> None:
+        command = bytearray(7)
+        command[0] = int.from_bytes(COMMANDS['facet_write'], 'big')
+        command[1] = facet
+        command[2] = mode
+        command[3:6] = pomodoro.to_bytes(4, 'big')
+
+        await self.write_command(command, True)
+
+        del command[:]
+
+    @requires_login
+    async def get_facet_v4(self, facet: int) -> Tuple[int, int, int]:
+        command = bytearray(2)
+        command[0] = int.from_bytes(COMMANDS['facet_read'], 'big')
+        command[1] = facet
+
+        data = await self.write_command_and_read_output(command, True)
+        del command[:]
+
+        return (
+            data[1],
+            data[2],
+            int.from_bytes(data[3:7], TIMEFLIP_ENDIANNESS),
+            int.from_bytes(data[7:11], 'big')
+        )
+
+    @requires_login
+    async def get_all_facets_v4(self) -> List[Tuple[int, int, int]]:
+        data = []
+
+        for i in range(0,12):
+            facet_data = await self.get_facet(i)
+            data.append(facet_data)
+
+        return data
+
+    @requires_login
+    async def get_event_v4(self) -> str:
+        return str(await self.base_char_read('event_data'))
+
+    @requires_login
+    async def register_notify_event_v4(self, event_callback: Callable[[str, Any], Any]):
+        await self.client.start_notify(CHARACTERISTICS['event_data'], event_callback)
+    
+    @requires_login
+    async def unregister_notify_event_v4(self):
+        await self.client.stop_notify(CHARACTERISTICS['event_data'])
+
+    @requires_login
+    async def get_history_v4(self, event_num: int) -> Tuple[int, int, int, int]:
+        """Get the history
+        """
+        command = bytearray(5)
+        command[0] = 0x01
+        command[1:5] = event_num.to_bytes(4,'big')
+
+        await self.base_char_write('history_data', command)
+
+        data = await self.base_char_read('history_data')
+        return (
+            int.from_bytes(data[0:4], TIMEFLIP_ENDIANNESS),  # event number
+            data[4],
+            int.from_bytes(data[5:13], TIMEFLIP_ENDIANNESS), # timestamp of flip(?)
+            int.from_bytes(data[13:18], 'little') # duration of flip
+        )
+
+    @requires_login
+    async def get_all_history_v4(self) -> List[Tuple[int, int, int, int]]:
+        """Get the history
+        """
+        event_number = 0
+
+        _17zeros = bytearray(17)  # mark the end of history
+
+        history_blocks = []
+
+        while True:
+            command = bytearray(5)
+            command[0] = 0x02
+            command[1:5] = event_number.to_bytes(4,'big')
+
+            await self.base_char_write('history_data', command)
+
+            data = await self.base_char_read('history_data')
+
+            if data[0:17] == _17zeros:
+                break
+
+            history_blocks.append((
+                int.from_bytes(data[0:4], TIMEFLIP_ENDIANNESS),  # event number
+                data[4],
+                int.from_bytes(data[5:13], TIMEFLIP_ENDIANNESS), # timestamp of flip(?)
+                int.from_bytes(data[13:18], 'little') # duration of flip
+            ))
+            
+            #increment bytes
+            event_number = event_number + 1
+            del command[:]
+
+        #num_blocks = int.from_bytes(first_pack, TIMEFLIP_ENDIANNESS)
+        return history_blocks
+
+    @requires_login
+    async def register_notify_history_v4(self, history_callback: Callable[[str, Any], Any]):
+        await self.client.start_notify(CHARACTERISTICS['history_data'], history_callback)
+    
+    @requires_login
+    async def unregister_notify_history_v4(self):
+        await self.client.stop_notify(CHARACTERISTICS['history_data'])
+
+    # version 3 commands
+
+    @requires_login
+    async def register_notify_facet_v3(self, facet_callback: Callable[[str, Any], Any]):
+        await self.client.start_notify(CHARACTERISTICS['facet'], facet_callback)
+    
+    @requires_login
+    async def unregister_notify_facet_v3(self):
+        await self.client.stop_notify(CHARACTERISTICS['facet'])
+
+    @requires_login
+    async def get_status_v3(self) -> dict:
         """Get status (command 0x10) on pause, lock and auto-pause. Requires login !
 
         If not logged in properly, the data size is not 21, so raises ``NotLoggedIn``
@@ -449,7 +701,57 @@ class AsyncClient:
         }
 
     @requires_login
-    async def pause(self, state: bool, force: bool = False) -> bool:
+    async def get_calibration_version_v3(self) -> int:
+        """Get calibration version. Requires login !
+
+        :return: an integer
+        """
+
+        return int.from_bytes(await self.base_char_read('calibration_version'), TIMEFLIP_ENDIANNESS)
+
+    @requires_login
+    async def set_calibration_version_v3(self, version: int) -> None:
+        """Set calibration version
+
+        :param version: the version (any number on 4 bytes)
+        """
+
+        if version >= 2**32:
+            raise ValueError('{} is too large (should be 4 bytes max)'.format(version))
+
+        await self.base_char_write(
+            CHARACTERISTICS['calibration_version'], bytearray(int.to_bytes(version, 4, TIMEFLIP_ENDIANNESS)))
+
+    @requires_login
+    async def get_accelerometer_value_v3(self, multiplier: float = 1.0) -> Tuple[float, float, float]:
+        """Get accelerometer vector
+
+        .. note::
+
+            By reading the text on the chip, I found out it is (probably) a
+            `LIS3DH accelerometer <https://www.st.com/resource/en/datasheet/lis3dh.pdf>`_, (probably) operating at 2G
+            (since value should be about ``(0.0, 0.0, 1.0)`` when the chip is on a flat surface).
+            Values are thus **little**-endian (documentation says big!) signed values, that needs to be divided by
+            16384 to give the acceleration (= gravity) vector in unit of G (= 9.81 m/s²).
+
+            (See the CircuitPython
+            `code <https://github.com/adafruit/Adafruit_CircuitPython_LIS3DH/blob/master/adafruit_lis3dh.py>`_
+            for more details)
+
+        :param multiplier: multiply all values of the vector
+               (if one wants to get acceleration in standard units, put 9.81 as a value).
+        :return: accelerometer vector, in unit of G.
+        """
+
+        divider = 2**14
+
+        data = await self.base_char_read('accelerometer_data')
+        ax, ay, az = struct.unpack('<hhh', data)
+
+        return ax / divider * multiplier, ay / divider * multiplier, az / divider * multiplier
+
+    @requires_login
+    async def set_pause_v3(self, state: bool, force: bool = False) -> bool:
         """Set (or unset) pause (command 0x04). Update internal. Requires login.
 
         .. note::
@@ -469,7 +771,7 @@ class AsyncClient:
         return self.paused
 
     @requires_login
-    async def lock(self, state: bool, force: bool = False) -> bool:
+    async def set_lock_v3(self, state: bool, force: bool = False) -> bool:
         """Set (or unset) lock (command 0x06). Update internal. Requires login.
 
         .. note::
@@ -502,7 +804,7 @@ class AsyncClient:
         0xXX 0xXX - number of minutes until automatic pause
     """
     @requires_login
-    async def set_auto_pause(self, time: int) -> None:
+    async def set_auto_pause_v3(self, time: int) -> None:
         """Set auto-pause (command 0x05).
 
         .. warning::
@@ -521,7 +823,7 @@ class AsyncClient:
         self.auto_pause_time = time
 
     @requires_login
-    async def set_name(self, name: str) -> bool:
+    async def set_name_v3(self, name: str) -> bool:
         """Set a new name to the device (0x15)
         """
 
@@ -534,7 +836,7 @@ class AsyncClient:
         return await self.write_command(_com(command), check=True)
 
     @requires_login
-    async def set_password(self, password: str) -> bool:
+    async def set_password_v3(self, password: str) -> bool:
         """Set a new password (0x30)
 
         :param password: 6-letter long password
@@ -548,198 +850,6 @@ class AsyncClient:
         command.extend(password)
         return await self.write_command(_com(command), check=True)
     
-    """
-    Get Time, reads the internal clock of the Timeflip. 
-
-    Written to the command_input characteristic (1 byte):
-        0x07
-
-        0x07 - command code
-    
-    Read from the command_result characteristic (5 bytes):
-        0x07 0xXX 0xXX 0xXX 0xXX
-
-        0x07 - command code
-        0xXX 0xXX 0xXX 0xXX - 64-bit integer containing the number of
-               seconds since 1970
-    """
-    @requires_login
-    async def get_time(self) -> int:
-        pass
-
-    """
-    Set Time, sets the internal clock of the Timeflip. 
-
-    Written to the command_input characteristic (5 bytes):
-
-        0x08 - command code
-        0xXX - 64-bit integer containing the number of 
-        0xXX   seconds since 1970    
-        0xXX 
-        0xXX
-               
-    """
-    @requires_login
-    async def set_time(self, time) -> None:
-        pass
-
-    """
-    Set Brightness, sets the brightness of the Timeflip LEDs.
-
-    Written to the command_input characteristic (2 bytes):
-
-        0x09 - command code
-        0xXX - brightness percent, (0 - 100)
-
-    """
-    @requires_login
-    async def set_brightness(self, brightness) -> None:
-        pass
-
-    """
-    Set Blink Frequency, sets the delay between conseutive LED flashes
-    from the Timeflip
-
-    Written to the command_input characteristic (2 bytes):
-
-        0x0A - command code
-        0xXX - delay in seconds, (5 - 60)
-
-    """
-    @requires_login
-    async def set_blink_frequency(self, blink_frequency) -> None:
-        pass
-
-    """
-    Set Facet Color, sets the color in RGB format for a given facet
-    of the Timeflip.
-
-    Written to the command_input characteristic (7 bytes):
-
-        0x11 - command code
-        0xNN - facet to set the color of (0-24)
-        0xRR - amount of red (0-255)
-        0xGG - amount of green (0-255)
-        0xBB - amount of blue (0-255)
-
-    """
-    @requires_login
-    async def set_color(self, facet: int, rgb: Tuple[int, int, int]):
-        pass
-
-    """
-    Set Facet command. Used to set the mode of a given facet and the pomodoro
-    time limit, if it is in pomodoro mode.
-
-    Written to the command_input characteristic (7 bytes):
-
-        0x13 0xNN 0xPP 0xTT 0xTT 0xTT 0xTT
-
-        0x13 - command code
-        0xNN - facet number (0 - 24)
-        0xPP - mode 
-            0 for normal
-            1 for pomodoro
-        0xTT 0xTT 0xTT 0xTT - 64-bit unsigned integer for the pomodoro
-                              timer limit in seconds
-
-    """
-    @requires_login
-    async def set_facet(self, facet: int, mode: int, pomodoro: int) -> None:
-        command = bytearray(7)
-        command[0] = int.from_bytes(COMMANDS['facet_write'], 'big')
-        command[1] = facet
-        command[2] = mode
-        command[3:6] = pomodoro.to_bytes(4, 'big')
-
-        await self.write_command(command, True)
-
-        del command[:]
-
-    @requires_login
-    async def read_facet(self, facet: int) -> Tuple[int, int, int]:
-        command = bytearray(2)
-        command[0] = int.from_bytes(COMMANDS['facet_read'], 'big')
-        command[1] = facet
-
-        data = await self.write_command_and_read_output(command, True)
-        del command[:]
-
-        return (
-            data[1],
-            data[2],
-            int.from_bytes(data[3:7], TIMEFLIP_ENDIANNESS),
-            int.from_bytes(data[7:11], 'big')
-        )
-
-    @requires_login
-    async def read_all_facets(self) -> List[Tuple[int, int, int]]:
-        data = []
-
-        for i in range(0,12):
-            facet_data = await self.read_facet(i)
-            data.append(facet_data)
-
-        return data
-
-    @requires_login
-    async def event(self) -> str:
-        return str(await self.base_char_read('event_data'))
-
-    @requires_login
-    async def history(self) -> List[Tuple[int, int, int, int]]:
-        """Get the history
-
-        .. note::
-
-            A history package is represented as a tuple of the form ``(facet, duration, original_package)``,
-            where ``duration`` is the duration during which the facet was set to this position.
-            ``original_package`` contains the original encoded package (if needed).
-            Each history read out add a history package, so it can result in multiple time the same facet.
-
-        :return: a list of history packages
-        """
-        event_number = 0
-
-        _17zeros = bytearray(17)  # mark the end of history
-
-        history_blocks = []
-
-        while True:
-            command = bytearray(5)
-            command[0] = 0x01
-            command[1:5] = event_number.to_bytes(4,'big')
-
-            await self.base_char_write('history_data', command)
-
-            data = await self.base_char_read('history_data')
-
-            print(
-                ''.join('{:02x}'.format(x) for x in data[0:4])   + "|" +
-                ''.join('{:02x}'.format(data[4]))                + "|" +
-                ''.join('{:02x}'.format(x) for x in data[5:13])  + "|" +
-                ''.join('{:02x}'.format(x) for x in data[13:18])
-            )
-
-            if data == _17zeros:
-                break
-
-            history_blocks.append((
-                int.from_bytes(data[0:4], TIMEFLIP_ENDIANNESS),  # event number
-                data[4],
-                int.from_bytes(data[5:13], TIMEFLIP_ENDIANNESS), # timestamp of flip(?)
-                int.from_bytes(data[13:18], 'little') # duration of flip
-            ))
-            
-            
-            #increment bytes
-            event_number = event_number + 1
-            del command[:]
-
-
-        #num_blocks = int.from_bytes(first_pack, TIMEFLIP_ENDIANNESS)
-        return history_blocks
-
     @requires_login
     async def history_v3(self) -> List[Tuple[int, int, bytearray]]:
         """Get the history
@@ -791,6 +901,13 @@ class AsyncClient:
         """
 
         await self.write_command(COMMANDS['calibration_reset'])
+
+    # 
+    async def deprecated_function(self) -> None:
+        raise DeprecatedFunctionError()
+    
+    async def unimplemented_function(self) -> None:
+        raise UnimplementedFunctionError()
 
     # async contexts:
 

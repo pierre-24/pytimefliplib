@@ -12,13 +12,12 @@ async def actions_on_client(client: AsyncClient, args: argparse.Namespace):
     print('- Name:', await client.device_name())
     print('- Firmware:', await client.firmware_revision())
     print('- Battery:', await client.battery_level())
-    #print('- Calibration:', await client.calibration_version())
     print('- Current facet:', await client.current_facet())
     #print('- Accelerometer vector:', ', '.join('{:.3f}'.format(x) for x in await client.accelerometer_value()))
-    print('- Status:', await client.status())
+    print('- Status:', await client.get_status())
 
     print('Facets::')
-    facets = await client.read_all_facets()
+    facets = await client.get_all_facets()
     for number, mode, pomodoro, timer in facets:
         print('- Facet={} mode: {}, pomodoro time: {}, timer: {}'
               .format(number, mode, pomodoro, timer)
@@ -28,12 +27,12 @@ async def actions_on_client(client: AsyncClient, args: argparse.Namespace):
 
     # print history
     print('History::')
-    history = await client.history()
+    history = await client.get_all_history()
     for number, facet, orig, duration in history:
         print('- Event {} on facet {} ({} seconds) from {}'.format(number, facet, duration, orig))
 
     # print event
-    event = await client.event()
+    event = await client.get_event()
     print("Event: {}", event)
 
 

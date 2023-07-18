@@ -6,7 +6,7 @@
 #
 autopep8==1.5.7
     # via -r requirements/requirements.in
-bleak==0.12.1
+bleak==0.20.2
     # via -r requirements/requirements-base.in
 dbus-next==0.2.3
     # via bleak
