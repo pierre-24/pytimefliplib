@@ -1,6 +1,6 @@
 from bleak import BleakClient
 from functools import wraps
-from typing import Callable, Any, List, Tuple
+from typing import Callable, Any, List, Tuple, Optional
 import struct
 
 TWENTY_ZEROES = [ 0x00, 0x00, 0x00, 0x00, 0x00, 
@@ -182,15 +182,20 @@ class AsyncClient:
     """TimeFlip asynchronous client
     """
 
-    def __init__(self, address: str):
+    def __init__(self, address: str, disconnected_callback: Optional[Callable[[BleakClient], None]] = None):
 
         self.address = address
         self.client = None
+        self.disconnected_callback = disconnected_callback
 
         # timeflip states
         self.logged = False
         self.connected = False
         self.facet_callback = None
+
+        self.facet_notify_active = False
+        self.event_notify_active = False
+        self.history_notify_active = False
 
         self.paused = False
         self.locked = False
@@ -205,7 +210,7 @@ class AsyncClient:
         """Connect to the device
         """
 
-        self.client = BleakClient(self.address)
+        self.client = BleakClient(self.address, disconnected_callback=self.disconnected_callback)
         self.connected = await self.client.connect()
 
     @requires_connection
@@ -253,6 +258,16 @@ class AsyncClient:
         Disconnect from the client.
         Also stop the notification on 0x6f52 before.
         """
+
+        if self.facet_notify_active:
+            await self.unregister_notify_facet_v3()
+        
+        if self.event_notify_active:
+            await self.unregister_notify_event_v4()
+        
+        if self.history_notify_active:
+            await self.unregister_notify_history_v4()
+            
 
         if self.facet_callback:
             try:
@@ -462,7 +477,7 @@ class AsyncClient:
         command = bytearray(1)
         command[0] = COMMANDS['time_read']
 
-        data = await write_command_and_read_output(command)
+        data = await self.write_command_and_read_output(command)
         return int.from_bytes(data[1:5], TIMEFLIP_ENDIANNESS)
 
     """
@@ -483,7 +498,7 @@ class AsyncClient:
         command[0] = COMMANDS['time_write']
         command[1:5] = time.to_bytes(4, TIMEFLIP_ENDIANNESS)
 
-        await write_command(command)
+        await self.write_command(command)
 
     """
     Set Brightness, sets the brightness of the Timeflip LEDs.
@@ -500,7 +515,7 @@ class AsyncClient:
         command[0] = COMMANDS['brightness_set']
         command[1] = brightness
 
-        await write_command(command)
+        await self.write_command(command)
 
     """
     Set Blink Frequency, sets the delay between conseutive LED flashes
@@ -518,7 +533,7 @@ class AsyncClient:
         command[0] = COMMANDS['blink_freq_set']
         command[1] = brightness
 
-        await write_command(command)
+        await self.write_command(command)
 
     """
     Set Facet Color, sets the color in RGB format for a given facet
@@ -536,13 +551,13 @@ class AsyncClient:
     @requires_login
     async def set_color_v4(self, facet: int, rgb: Tuple[int, int, int]):
         command = bytearray(5)
-        command[0] = COMMANDS['color_set']
+        command[0] = COMMANDS['color_set'][0]
         command[1] = facet
         command[2] = rgb[0]
         command[3] = rgb[1]
         command[4] = rgb[2]
 
-        await write_command(command)
+        await self.write_command(command)
 
     """
     Set Facet command. Used to set the mode of a given facet and the pomodoro
@@ -606,10 +621,14 @@ class AsyncClient:
     @requires_login
     async def register_notify_event_v4(self, event_callback: Callable[[str, Any], Any]):
         await self.client.start_notify(CHARACTERISTICS['event_data'], event_callback)
+
+        self.event_notify_active = True
     
     @requires_login
     async def unregister_notify_event_v4(self):
         await self.client.stop_notify(CHARACTERISTICS['event_data'])
+
+        self.event_notify_active = False
 
     @requires_login
     async def get_history_v4(self, event_num: int) -> Tuple[int, int, int, int]:
@@ -668,20 +687,28 @@ class AsyncClient:
     @requires_login
     async def register_notify_history_v4(self, history_callback: Callable[[str, Any], Any]):
         await self.client.start_notify(CHARACTERISTICS['history_data'], history_callback)
+
+        self.history_notify_active = True
     
     @requires_login
     async def unregister_notify_history_v4(self):
         await self.client.stop_notify(CHARACTERISTICS['history_data'])
+
+        self.history_notify_active = False
 
     # version 3 commands
 
     @requires_login
     async def register_notify_facet_v3(self, facet_callback: Callable[[str, Any], Any]):
         await self.client.start_notify(CHARACTERISTICS['facet'], facet_callback)
+
+        self.facet_notify_active = True
     
     @requires_login
     async def unregister_notify_facet_v3(self):
         await self.client.stop_notify(CHARACTERISTICS['facet'])
+
+        self.facet_notify_active = False
 
     @requires_login
     async def get_status_v3(self) -> dict:
