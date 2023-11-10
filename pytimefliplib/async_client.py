@@ -204,6 +204,29 @@ class AsyncClient:
 
         self.firmware_version = None
 
+        
+        # Assume version 3 as the default for backwards compatibility
+        # The `setup()` function will set these correctly if we are 
+        # at version 4
+        self.get_status = self.get_status_v3
+        self.set_paused = self.set_paused_v3
+        self.set_lock = self.set_lock_v3
+        self.set_auto_pause = self.set_auto_pause_v3
+        self.set_name = self.set_name_v3
+        self.set_password = self.set_password_v3
+        self.get_status = self.get_status_v3
+        self.get_history = self.get_history_v3
+        self.get_calibration_version = \
+            self.get_calibration_version_v3
+        self.set_calibration_version = \
+            self.set_calibration_version_v3
+
+        # Provide backwards compatibility with old-style of naming schemes
+        self.lock = self.set_lock
+        self.pause = self.set_paused
+        self.status = self.get_status
+        self.history = self.get_history
+
     # basic BLE actions:
 
     async def connect(self) -> None:
@@ -348,15 +371,8 @@ class AsyncClient:
         firmware_revision = await self.firmware_revision()
         self.firmware_version = float(firmware_revision[4:8])
 
+        # For version 4 these functions are different
         if self.firmware_version >= 3.47:
-            # Consistent functions between versions
-            self.get_status = self.get_status_v3
-            self.set_paused = self.set_pause_v3
-            self.set_lock = self.set_lock_v3
-            self.set_auto_pause = self.set_auto_pause_v3
-            self.set_name = self.set_name_v3
-            self.set_password = self.set_password_v3
-
             # New or changed in version 4
             self.get_time = self.get_time_v4
             self.set_time = self.set_time_v4
@@ -373,12 +389,6 @@ class AsyncClient:
             # Deprecated in version 4
             self.get_calibration_version = self.deprecated_function
             self.set_calibration_version = self.deprecated_function
-        else:
-            self.get_status = self.get_status_v3
-            self.get_calibration_version = \
-                self.get_calibration_version_v3
-            self.set_calibration_version = \
-                self.set_calibration_version_v3
 
         if not await self.login(password):
             raise NotLoggedInError()
@@ -778,7 +788,7 @@ class AsyncClient:
         return ax / divider * multiplier, ay / divider * multiplier, az / divider * multiplier
 
     @requires_login
-    async def set_pause_v3(self, state: bool, force: bool = False) -> bool:
+    async def set_paused_v3(self, state: bool, force: bool = False) -> bool:
         """Set (or unset) pause (command 0x04). Update internal. Requires login.
 
         .. note::
