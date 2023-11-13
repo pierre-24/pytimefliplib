@@ -45,13 +45,13 @@ CHARACTERISTIC_READ_LENGTHS = {
 
     # timeflip
     'event_data':           20,
-    'accelerometer_data':   -1,  # deprecated
+    'accelerometer_data':   6,  # version 3 only
     'facet':                1,
     'command_result':       20,
     'command_input':        2,
     'double_tap':           -1,
     'system_state':         4,
-    'calibration_version':  -1,  # deprecated
+    'calibration_version':  4,  # vers 3 only
     'password_input':       -1,
     'history_data':         20
 }
@@ -64,13 +64,13 @@ CHARACTERISTIC_WRITE_LENGTHS = {
 
     # timeflip
     'event_data':           -1,
-    'accelerometer_data':   -1,  # deprecated
+    'accelerometer_data':   -1,
     'facet':                -1,
     'command_result':       -1,
     'command_input':        20,
     'double_tap':           -1,
     'system_state':         -1,
-    'calibration_version':  -1,  # deprecated
+    'calibration_version':  4,  # vers 3 only
     'password_input':       6,
     'history_data':         20
 }
@@ -83,13 +83,13 @@ CHARACTERISTIC_NOTIFY_LENGTHS = {
 
     # timeflip
     'event_data':           20,
-    'accelerometer_data':   -1,  # deprecated
+    'accelerometer_data':   -1,
     'facet':                1,
     'command_result':       20,
     'command_input':        20,
     'double_tap':           -1,
     'system_state':         4,
-    'calibration_version':  -1,  # deprecated
+    'calibration_version':  -1,
     'password_input':       6,
     'history_data':         20
 }
