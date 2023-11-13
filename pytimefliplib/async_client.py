@@ -24,14 +24,14 @@ CHARACTERISTICS = {
     'device_name':          UUID_GENERIC.format(0x2a00),
 
     # timeflip
-    'event_data':           UUID_TIMEFLIP.format(0x6f51), # vers 4.0
-    'accelerometer_data':   UUID_TIMEFLIP.format(0x6f51), # vers 3.0
+    'event_data':           UUID_TIMEFLIP.format(0x6f51),  # vers 4.0
+    'accelerometer_data':   UUID_TIMEFLIP.format(0x6f51),  # vers 3.0
     'facet':                UUID_TIMEFLIP.format(0x6f52),
     'command_result':       UUID_TIMEFLIP.format(0x6f53),
     'command_input':        UUID_TIMEFLIP.format(0x6f54),
     'double_tap':           UUID_TIMEFLIP.format(0x6f55),  # "double tap" is reserved for future use
-    'calibration_version':  UUID_TIMEFLIP.format(0x6f56), # vers 3.0
-    'system_state':         UUID_TIMEFLIP.format(0x6f56), # vers 4.0
+    'calibration_version':  UUID_TIMEFLIP.format(0x6f56),  # vers 3.0
+    'system_state':         UUID_TIMEFLIP.format(0x6f56),  # vers 4.0
     'password_input':       UUID_TIMEFLIP.format(0x6f57),
     'history_data':         UUID_TIMEFLIP.format(0x6f58),
 }
@@ -45,13 +45,13 @@ CHARACTERISTIC_READ_LENGTHS = {
 
     # timeflip
     'event_data':           20,
-    'accelerometer_data':   -1, # deprecated
+    'accelerometer_data':   -1,  # deprecated
     'facet':                1,
     'command_result':       20,
     'command_input':        2,
     'double_tap':           -1,
     'system_state':         4,
-    'calibration_version':  -1, # deprecated
+    'calibration_version':  -1,  # deprecated
     'password_input':       -1,
     'history_data':         20
 }
@@ -64,13 +64,13 @@ CHARACTERISTIC_WRITE_LENGTHS = {
 
     # timeflip
     'event_data':           -1,
-    'accelerometer_data':   -1, # deprecated
+    'accelerometer_data':   -1,  # deprecated
     'facet':                -1,
     'command_result':       -1,
     'command_input':        20,
     'double_tap':           -1,
     'system_state':         -1,
-    'calibration_version':  -1, # deprecated
+    'calibration_version':  -1,  # deprecated
     'password_input':       6,
     'history_data':         20
 }
@@ -83,13 +83,13 @@ CHARACTERISTIC_NOTIFY_LENGTHS = {
 
     # timeflip
     'event_data':           20,
-    'accelerometer_data':   -1, # deprecated
+    'accelerometer_data':   -1,  # deprecated
     'facet':                1,
     'command_result':       20,
     'command_input':        20,
     'double_tap':           -1,
     'system_state':         4,
-    'calibration_version':  -1, # deprecated
+    'calibration_version':  -1,  # deprecated
     'password_input':       6,
     'history_data':         20
 }
@@ -100,8 +100,8 @@ def _com(x):
 
 COMMANDS = {
     'history':              _com(0x01),
-    'history_delete':       _com(0x02), # version 3
-    'history_dump':         _com(0x02), # version 4
+    'history_delete':       _com(0x02),  # version 3
+    'history_dump':         _com(0x02),  # version 4
     'calibration_reset':    _com(0x03),
     'lock_on':              _com([0x04, 0x01]),
     'lock_off':             _com([0x04, 0x02]),
@@ -270,8 +270,6 @@ class AsyncClient:
 
         if length == -1:
             raise ValueError("Characteristic not supported for write")
-        # elif len(data) != length:
-        #     raise ValueError("Incorrect write length provided")
         
         await self.client.write_gatt_char(uuid, data)
 

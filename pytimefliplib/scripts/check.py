@@ -39,8 +39,6 @@ async def actions_on_client(client: AsyncClient, args: argparse.Namespace):
                 .format(number, mode, pomodoro, timer)
             )
 
-        #await client.set_facet(1,1,300)
-
         # print history
         print('History::')
         history = await client.get_all_history()
