@@ -14,8 +14,7 @@ UUID_TIMEFLIP = 'f119{:x}-71a4-11e6-bdf4-0800200c9a66'
 DEFAULT_PASSWORD = '000000'
 
 BLUETOOTH_ENDIANNESS = 'little'
-#TIMEFLIP_ENDIANNESS = BLUETOOTH_ENDIANNESS  # it was not clear, but based on history read out, it is little endian
-TIMEFLIP_ENDIANNESS = 'big'
+TIMEFLIP_ENDIANNESS = BLUETOOTH_ENDIANNESS  # it was not clear, but based on history read out, it is little endian
 
 CHARACTERISTICS = {
     # generic
@@ -371,6 +370,10 @@ class AsyncClient:
 
         # For version 4 these functions are different
         if self.firmware_version >= 3.47:
+            # Version 4 protocol appears to use big rather than little
+            # endianness for certain characteristics
+            TIMEFLIP_ENDIANNESS = 'big'
+
             # New or changed in version 4
             self.get_time = self.get_time_v4
             self.set_time = self.set_time_v4
@@ -381,8 +384,8 @@ class AsyncClient:
             self.get_facet = self.get_facet_v4
             self.get_all_facets = self.get_all_facets_v4
             self.get_event = self.get_event_v4
-            self.get_history = self.get_history_v4
-            self.get_all_history = self.get_all_history_v4
+            self.get_history = self.unimplemented_function
+            self.get_all_history = self.unimplemented_function
 
             # Deprecated in version 4
             self.get_calibration_version = self.deprecated_function
@@ -681,7 +684,7 @@ class AsyncClient:
             history_blocks.append((
                 int.from_bytes(data[0:4], TIMEFLIP_ENDIANNESS),  # event number
                 data[4],
-                int.from_bytes(data[5:13], TIMEFLIP_ENDIANNESS), # timestamp of flip(?)
+                int.from_bytes(data[5:13], TIMEFLIP_ENDIANNESS),  # timestamp of flip(?)
                 int.from_bytes(data[13:18], 'little') # duration of flip
             ))
             
@@ -689,7 +692,6 @@ class AsyncClient:
             event_number = event_number + 1
             del command[:]
 
-        #num_blocks = int.from_bytes(first_pack, TIMEFLIP_ENDIANNESS)
         return history_blocks
 
     @requires_login
