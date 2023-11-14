@@ -31,7 +31,7 @@ async def run():
                 except BleakError:
                     devices_map['not_timeflip'].append(d)
 
-        except (BleakError, asyncio.exceptions.TimeoutError):
+        except (BleakError, asyncio.TimeoutError):
             devices_map['connection_issue'].append(d)
 
     print(' Done!')
