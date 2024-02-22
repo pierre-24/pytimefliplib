@@ -727,8 +727,8 @@ class AsyncClient:
 
         return {
             'locked': is_locked,
-            'paused': if is_locked True else data[1] == 0x01,
-            'auto_pause_time': if is_locked 0 else int.from_bytes(data[2:4], TIMEFLIP_ENDIANNESS)
+            'paused': True if is_locked else data[1] == 0x01,
+            'auto_pause_time': 0 if is_locked else int.from_bytes(data[2:4], TIMEFLIP_ENDIANNESS)
         }
 
     @requires_login
