@@ -721,10 +721,14 @@ class AsyncClient:
 
         data = await self.write_command_and_read_output(COMMANDS['status'])
 
+        # Turns out when it's locked it doesn't return the rest
+        # of the status information!
+        is_locked = data[0] == 0x01
+
         return {
-            'locked': data[0] == 0x01,
-            'paused': data[1] == 0x01,
-            'auto_pause_time': int.from_bytes(data[2:4], TIMEFLIP_ENDIANNESS)
+            'locked': is_locked,
+            'paused': if is_locked True else data[1] == 0x01,
+            'auto_pause_time': if is_locked 0 else int.from_bytes(data[2:4], TIMEFLIP_ENDIANNESS)
         }
 
     @requires_login
