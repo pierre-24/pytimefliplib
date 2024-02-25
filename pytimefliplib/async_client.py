@@ -182,9 +182,10 @@ class AsyncClient:
     """TimeFlip asynchronous client
     """
 
-    def __init__(self, address: str, disconnected_callback: Optional[Callable[[BleakClient], None]] = None):
+    def __init__(self, address: str, disconnected_callback: Optional[Callable[[BleakClient], None]] = None, adapter=None):
 
         self.address = address
+        self.adapter = adapter
         self.client = None
         self.disconnected_callback = disconnected_callback
 
@@ -210,7 +211,7 @@ class AsyncClient:
         """Connect to the device
         """
 
-        self.client = BleakClient(self.address, disconnected_callback=self.disconnected_callback)
+        self.client = BleakClient(self.address, disconnected_callback=self.disconnected_callback, adapter=self.adapter)
         self.connected = await self.client.connect()
 
     @requires_connection
