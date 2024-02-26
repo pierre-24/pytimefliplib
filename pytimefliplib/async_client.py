@@ -1,4 +1,6 @@
 from bleak import BleakClient
+from bleak.backends.bluezdbus.client import BleakClientBlueZDBus
+from bleak.backends.client import get_platform_client_backend_type
 from functools import wraps
 from typing import Callable, Any, List, Tuple, Optional
 import struct
@@ -211,7 +213,17 @@ class AsyncClient:
         """Connect to the device
         """
 
-        self.client = BleakClient(self.address, disconnected_callback=self.disconnected_callback, adapter=self.adapter)
+        client_backend_type = get_platform_client_backend_type()
+        client_backend = None
+
+        if isinstance(client_backend_type, BleakClientBlueZDBus) and self.adapter:
+            client_backend = client_backend_type(self.address, disconnected_callback=self.disconnected_callback, adapter=self.adapter)
+        else:
+            client_backend = client_backend_type(self.address, disconnected_callback=self.disconnected_callback)
+
+        # The 'address' argument is erroneous here since we have constructed the backend ourselves,
+        # but it is still required
+        self.client = BleakClient(self.address, backend=client_backend)
         self.connected = await self.client.connect()
 
     @requires_connection
