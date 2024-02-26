@@ -216,7 +216,7 @@ class AsyncClient:
         client_backend_type = get_platform_client_backend_type()
         client_backend = None
 
-        if iclient_backend_type == BleakClientBlueZDBus and self.adapter:
+        if client_backend_type == BleakClientBlueZDBus and self.adapter:
             client_backend = client_backend_type(self.address, disconnected_callback=self.disconnected_callback, adapter=self.adapter)
         else:
             client_backend = client_backend_type(self.address, disconnected_callback=self.disconnected_callback)
