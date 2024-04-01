@@ -14,7 +14,6 @@ UUID_TIMEFLIP = 'f119{:x}-71a4-11e6-bdf4-0800200c9a66'
 DEFAULT_PASSWORD = '000000'
 
 BLUETOOTH_ENDIANNESS = 'little'
-#TIMEFLIP_ENDIANNESS = BLUETOOTH_ENDIANNESS  # it was not clear, but based on history read out, it is little endian
 TIMEFLIP_ENDIANNESS = 'big'
 
 CHARACTERISTICS = {
@@ -45,13 +44,13 @@ CHARACTERISTIC_READ_LENGTHS = {
 
     # timeflip
     'event_data':           20,
-    'accelerometer_data':   6, # version 3 only
+    'accelerometer_data':   6,  # version 3 only
     'facet':                1,
     'command_result':       20,
     'command_input':        2,
     'double_tap':           -1,
     'system_state':         4,
-    'calibration_version':  4, # vers 3 only
+    'calibration_version':  4,  # vers 3 only
     'password_input':       -1,
     'history_data':         20
 }
@@ -70,7 +69,7 @@ CHARACTERISTIC_WRITE_LENGTHS = {
     'command_input':        20,
     'double_tap':           -1,
     'system_state':         -1,
-    'calibration_version':  4, # vers 3 only
+    'calibration_version':  4,  # vers 3 only
     'password_input':       6,
     'history_data':         20
 }
