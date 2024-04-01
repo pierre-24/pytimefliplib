@@ -24,14 +24,14 @@ CHARACTERISTICS = {
     'device_name':          UUID_GENERIC.format(0x2a00),
 
     # timeflip
-    'event_data':           UUID_TIMEFLIP.format(0x6f51), # vers 4.0
-    'accelerometer_data':   UUID_TIMEFLIP.format(0x6f51), # vers 3.0
+    'event_data':           UUID_TIMEFLIP.format(0x6f51),  # vers 4.0
+    'accelerometer_data':   UUID_TIMEFLIP.format(0x6f51),  # vers 3.0
     'facet':                UUID_TIMEFLIP.format(0x6f52),
     'command_result':       UUID_TIMEFLIP.format(0x6f53),
     'command_input':        UUID_TIMEFLIP.format(0x6f54),
     'double_tap':           UUID_TIMEFLIP.format(0x6f55),  # "double tap" is reserved for future use
-    'calibration_version':  UUID_TIMEFLIP.format(0x6f56), # vers 3.0
-    'system_state':         UUID_TIMEFLIP.format(0x6f56), # vers 4.0
+    'calibration_version':  UUID_TIMEFLIP.format(0x6f56),  # vers 3.0
+    'system_state':         UUID_TIMEFLIP.format(0x6f56),  # vers 4.0
     'password_input':       UUID_TIMEFLIP.format(0x6f57),
     'history_data':         UUID_TIMEFLIP.format(0x6f58),
 }
@@ -45,13 +45,13 @@ CHARACTERISTIC_READ_LENGTHS = {
 
     # timeflip
     'event_data':           20,
-    'accelerometer_data':   -1, # deprecated
+    'accelerometer_data':   -1,
     'facet':                1,
     'command_result':       20,
     'command_input':        2,
     'double_tap':           -1,
     'system_state':         4,
-    'calibration_version':  -1, # deprecated
+    'calibration_version':  -1,
     'password_input':       -1,
     'history_data':         20
 }
