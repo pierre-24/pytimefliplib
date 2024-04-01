@@ -247,8 +247,6 @@ class AsyncClient:
 
         if length == -1:
             raise ValueError("Characteristic not supported for write")
-        # elif len(data) != length:
-        #     raise ValueError("Incorrect write length provided")
         
         await self.client.write_gatt_char(uuid, data)
 
@@ -351,7 +349,7 @@ class AsyncClient:
         if self.firmware_version >= 3.47:
             # Consistent functions between versions
             self.get_status = self.get_status_v3
-            self.set_paused = self.set_pause_v3
+            self.set_paused = self.set_paused_v3
             self.set_lock = self.set_lock_v3
             self.set_auto_pause = self.set_auto_pause_v3
             self.set_name = self.set_name_v3
@@ -673,7 +671,7 @@ class AsyncClient:
             history_blocks.append((
                 int.from_bytes(data[0:4], TIMEFLIP_ENDIANNESS),  # event number
                 data[4],
-                int.from_bytes(data[5:13], TIMEFLIP_ENDIANNESS), # timestamp of flip(?)
+                int.from_bytes(data[5:13], TIMEFLIP_ENDIANNESS),  # timestamp of flip(?)
                 int.from_bytes(data[13:18], 'little') # duration of flip
             ))
             
@@ -681,7 +679,6 @@ class AsyncClient:
             event_number = event_number + 1
             del command[:]
 
-        #num_blocks = int.from_bytes(first_pack, TIMEFLIP_ENDIANNESS)
         return history_blocks
 
     @requires_login
@@ -782,7 +779,7 @@ class AsyncClient:
         return ax / divider * multiplier, ay / divider * multiplier, az / divider * multiplier
 
     @requires_login
-    async def set_pause_v3(self, state: bool, force: bool = False) -> bool:
+    async def set_paused_v3(self, state: bool, force: bool = False) -> bool:
         """Set (or unset) pause (command 0x04). Update internal. Requires login.
 
         .. note::
