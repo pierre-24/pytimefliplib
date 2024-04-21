@@ -7,7 +7,7 @@ help:
 
 
 install:
-	pip-sync && pip3 install -e .
+	pip3 install -e .[dev]
 
 lint:
 	flake8 pytimefliplib --max-line-length=120 --ignore=N802

@@ -1,13 +1,15 @@
 # `pytimefliplib`
 
-A Python library TimeFlip devices v3.
+A Python library TimeFlip devices v3 and v4.
 
-The communication protocol (empirically corrected) is described [here](./protocol_v3_corrected.md).
+The communication protocol (empirically corrected) for the V3 version is described [here](./protocol_v3_corrected.md) (originally described [here](https://github.com/DI-GROUP/TimeFlip.Docs/blob/master/Hardware/BLE_device_commutication_protocol_v3.0_en.md)).
+
+The one concerning V4 is given [here](https://github.com/DI-GROUP/TimeFlip.Docs/blob/master/Hardware/TimeFlip%20BLE%20protocol%20ver4_02.06.2020.md).
 
 ## Install and use
 
 ```bash
-pip install --upgrade git+https://github.com/pierre-24/pytimefliplib.git
+pip install git+https://github.com/pierre-24/pytimefliplib.git
 ```
 
 Provides, with [a simple Python API](./pytimefliplib/async_client.py), 
