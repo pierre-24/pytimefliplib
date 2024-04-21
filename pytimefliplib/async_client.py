@@ -3,10 +3,12 @@ from functools import wraps
 from typing import Callable, Any, List, Tuple, Optional
 import struct
 
-TWENTY_ZEROES = [ 0x00, 0x00, 0x00, 0x00, 0x00, 
-                  0x00, 0x00, 0x00, 0x00, 0x00, 
-                  0x00, 0x00, 0x00, 0x00, 0x00, 
-                  0x00, 0x00, 0x00, 0x00, 0x00 ]
+TWENTY_ZEROES = [
+    0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00
+]
 
 UUID_GENERIC = '0000{:x}-0000-1000-8000-00805f9b34fb'
 UUID_TIMEFLIP = 'f119{:x}-71a4-11e6-bdf4-0800200c9a66'
@@ -18,104 +20,105 @@ TIMEFLIP_ENDIANNESS = BLUETOOTH_ENDIANNESS  # it was not clear, but based on his
 
 CHARACTERISTICS = {
     # generic
-    'battery_level':        UUID_GENERIC.format(0x2a19),
-    'firmware_revision':    UUID_GENERIC.format(0x2a26),
-    'device_name':          UUID_GENERIC.format(0x2a00),
+    'battery_level': UUID_GENERIC.format(0x2a19),
+    'firmware_revision': UUID_GENERIC.format(0x2a26),
+    'device_name': UUID_GENERIC.format(0x2a00),
 
     # timeflip
-    'event_data':           UUID_TIMEFLIP.format(0x6f51),  # vers 4.0
-    'accelerometer_data':   UUID_TIMEFLIP.format(0x6f51),  # vers 3.0
-    'facet':                UUID_TIMEFLIP.format(0x6f52),
-    'command_result':       UUID_TIMEFLIP.format(0x6f53),
-    'command_input':        UUID_TIMEFLIP.format(0x6f54),
-    'double_tap':           UUID_TIMEFLIP.format(0x6f55),  # "double tap" is reserved for future use
-    'calibration_version':  UUID_TIMEFLIP.format(0x6f56),  # vers 3.0
-    'system_state':         UUID_TIMEFLIP.format(0x6f56),  # vers 4.0
-    'password_input':       UUID_TIMEFLIP.format(0x6f57),
-    'history_data':         UUID_TIMEFLIP.format(0x6f58),
+    'event_data': UUID_TIMEFLIP.format(0x6f51),  # vers 4.0
+    'accelerometer_data': UUID_TIMEFLIP.format(0x6f51),  # vers 3.0
+    'facet': UUID_TIMEFLIP.format(0x6f52),
+    'command_result': UUID_TIMEFLIP.format(0x6f53),
+    'command_input': UUID_TIMEFLIP.format(0x6f54),
+    'double_tap': UUID_TIMEFLIP.format(0x6f55),  # "double tap" is reserved for future use
+    'calibration_version': UUID_TIMEFLIP.format(0x6f56),  # vers 3.0
+    'system_state': UUID_TIMEFLIP.format(0x6f56),  # vers 4.0
+    'password_input': UUID_TIMEFLIP.format(0x6f57),
+    'history_data': UUID_TIMEFLIP.format(0x6f58),
 }
 
 # This is per the v 4.0 specification
 CHARACTERISTIC_READ_LENGTHS = {
     # generic
-    'battery_level':        1,
-    'firmware_revision':    20,
-    'device_name':          20,
+    'battery_level': 1,
+    'firmware_revision': 20,
+    'device_name': 20,
 
     # timeflip
-    'event_data':           20,
-    'accelerometer_data':   6,  # version 3 only
-    'facet':                1,
-    'command_result':       20,
-    'command_input':        2,
-    'double_tap':           -1,
-    'system_state':         4,
-    'calibration_version':  4,  # vers 3 only
-    'password_input':       -1,
-    'history_data':         20
+    'event_data': 20,
+    'accelerometer_data': 6,  # version 3 only
+    'facet': 1,
+    'command_result': 20,
+    'command_input': 2,
+    'double_tap': -1,
+    'system_state': 4,
+    'calibration_version': 4,  # vers 3 only
+    'password_input': -1,
+    'history_data': 20
 }
 
 CHARACTERISTIC_WRITE_LENGTHS = {
     # generic
-    'battery_level':        -1,
-    'firmware_revision':    -1,
-    'device_name':          -1,
+    'battery_level': -1,
+    'firmware_revision': -1,
+    'device_name': -1,
 
     # timeflip
-    'event_data':           -1,
-    'accelerometer_data':   -1,
-    'facet':                -1,
-    'command_result':       -1,
-    'command_input':        20,
-    'double_tap':           -1,
-    'system_state':         -1,
-    'calibration_version':  4,  # vers 3 only
-    'password_input':       6,
-    'history_data':         20
+    'event_data': -1,
+    'accelerometer_data': -1,
+    'facet': -1,
+    'command_result': -1,
+    'command_input': 20,
+    'double_tap': -1,
+    'system_state': -1,
+    'calibration_version': 4,  # vers 3 only
+    'password_input': 6,
+    'history_data': 20
 }
 
 CHARACTERISTIC_NOTIFY_LENGTHS = {
     # generic
-    'battery_level':        1,
-    'firmware_revision':    -1,
-    'device_name':          -1,
+    'battery_level': 1,
+    'firmware_revision': -1,
+    'device_name': -1,
 
     # timeflip
-    'event_data':           20,
-    'accelerometer_data':   -1,
-    'facet':                1,
-    'command_result':       20,
-    'command_input':        20,
-    'double_tap':           -1,
-    'system_state':         4,
-    'calibration_version':  -1,
-    'password_input':       6,
-    'history_data':         20
+    'event_data': 20,
+    'accelerometer_data': -1,
+    'facet': 1,
+    'command_result': 20,
+    'command_input': 20,
+    'double_tap': -1,
+    'system_state': 4,
+    'calibration_version': -1,
+    'password_input': 6,
+    'history_data': 20
 }
+
 
 def _com(x):
     return bytearray([x] if type(x) is int else x)
 
 
 COMMANDS = {
-    'history':              _com(0x01),
-    'history_delete':       _com(0x02),  # version 3
-    'history_dump':         _com(0x02),  # version 4
-    'calibration_reset':    _com(0x03),
-    'lock_on':              _com([0x04, 0x01]),
-    'lock_off':             _com([0x04, 0x02]),
-    'auto_pause_set':       _com(0x05),
-    'pause_on':             _com([0x06, 0x01]),
-    'pause_off':            _com([0x06, 0x02]),
-    'time_read':            _com(0x07),
-    'time_write':           _com(0x08),
-    'brightness_set':       _com(0x09),
-    'blink_freq_set':       _com(0x0A),
-    'status':               _com(0x10),
-    'color_set':            _com(0x11),
-    'facet_write':          _com(0x13),
-    'facet_read':           _com(0x14),
-    'set_password':         _com(0x30)
+    'history': _com(0x01),
+    'history_delete': _com(0x02),  # version 3
+    'history_dump': _com(0x02),  # version 4
+    'calibration_reset': _com(0x03),
+    'lock_on': _com([0x04, 0x01]),
+    'lock_off': _com([0x04, 0x02]),
+    'auto_pause_set': _com(0x05),
+    'pause_on': _com([0x06, 0x01]),
+    'pause_off': _com([0x06, 0x02]),
+    'time_read': _com(0x07),
+    'time_write': _com(0x08),
+    'brightness_set': _com(0x09),
+    'blink_freq_set': _com(0x0A),
+    'status': _com(0x10),
+    'color_set': _com(0x11),
+    'facet_write': _com(0x13),
+    'facet_read': _com(0x14),
+    'set_password': _com(0x30)
 }
 
 
@@ -132,17 +135,21 @@ class NotLoggedInError(TimeFlipRuntimeError):
     def __init__(self):
         super().__init__('Not logged in (incorrect password?)')
 
+
 class IncorrectPasswordError(TimeFlipRuntimeError):
     def __init__(self):
         super().__init__('Incorrect password for device')
+
 
 class TimeFlipCommandError(TimeFlipRuntimeError):
     def __init__(self, command):
         super().__init__('Error while executing {}'.format(command))
 
+
 class UnimplementedFunctionError(TimeFlipRuntimeError):
     def __init__(self):
         super().__init__('Function not implemented in this firmware version')
+
 
 class DeprecatedFunctionError(TimeFlipRuntimeError):
     def __init__(self):
@@ -203,9 +210,8 @@ class AsyncClient:
 
         self.firmware_version = None
 
-        
         # Assume version 3 as the default for backwards compatibility
-        # The `setup()` function will set these correctly if we are 
+        # The `setup()` function will set these correctly if we are
         # at version 4
         self.get_status = self.get_status_v3
         self.set_paused = self.set_paused_v3
@@ -239,16 +245,16 @@ class AsyncClient:
     async def base_char_read(self, characteristic: str) -> bytearray:
         """Read characteristic value from uuid
 
-        :param uuid: characteristic uuid
+        :param characteristic: characteristic uuid
         """
         if characteristic not in CHARACTERISTICS:
-            raise ValueError("Invalid characteristic")
-        
+            raise ValueError('Invalid characteristic')
+
         uuid = CHARACTERISTICS[characteristic]
         length = CHARACTERISTIC_READ_LENGTHS[characteristic]
 
         if length == -1:
-            raise ValueError("Characteristic not supported for read")
+            raise ValueError('Characteristic not supported for read')
 
         result = await self.client.read_gatt_char(uuid)
 
@@ -258,18 +264,18 @@ class AsyncClient:
     async def base_char_write(self, characteristic: str, data: bytearray) -> None:
         """Write characteristic value from uuid
 
-        :param uuid: characteristic uuid
+        :param characteristic: characteristic uuid
         :param data: data to write
         """
         if characteristic not in CHARACTERISTICS:
-            raise ValueError("Invalid characteristic")
-        
+            raise ValueError('Invalid characteristic')
+
         uuid = CHARACTERISTICS[characteristic]
         length = CHARACTERISTIC_WRITE_LENGTHS[characteristic]
 
         if length == -1:
-            raise ValueError("Characteristic not supported for write")
-        
+            raise ValueError('Characteristic not supported for write')
+
         await self.client.write_gatt_char(uuid, data)
 
     @requires_connection
@@ -281,13 +287,12 @@ class AsyncClient:
 
         if self.facet_notify_active:
             await self.unregister_notify_facet_v3()
-        
+
         if self.event_notify_active:
             await self.unregister_notify_event_v4()
-        
+
         if self.history_notify_active:
             await self.unregister_notify_history_v4()
-            
 
         if self.facet_callback:
             try:
@@ -313,8 +318,7 @@ class AsyncClient:
         :return: percentage of battery level (from 0 to 100)
         """
 
-        return int.from_bytes(
-            await self.base_char_read('battery_level'), BLUETOOTH_ENDIANNESS)
+        return int.from_bytes(await self.base_char_read('battery_level'), BLUETOOTH_ENDIANNESS)
 
     @requires_connection
     async def firmware_revision(self) -> str:
@@ -353,7 +357,7 @@ class AsyncClient:
         """
         + Get firmware version
         + Log in,
-        + Setup the notification callback on 0x6f52 (if any)
+        + Set up the notification callback on 0x6f52 (if any)
         + Get status to update internals
         + Get current facet (triggers the callback)
 
@@ -420,8 +424,7 @@ class AsyncClient:
         """
 
         if force:
-            self.current_facet_value = int.from_bytes(
-                await self.base_char_read('facet'), TIMEFLIP_ENDIANNESS)
+            self.current_facet_value = int.from_bytes(await self.base_char_read('facet'), TIMEFLIP_ENDIANNESS)
 
         return self.current_facet_value
 
@@ -465,102 +468,104 @@ class AsyncClient:
 
         return data
 
-
     # version 4 commands
-
-    """
-    Get Time, reads the internal clock of the Timeflip. 
-
-    Written to the command_input characteristic (1 byte):
-        0x07
-
-        0x07 - command code
-    
-    Read from the command_result characteristic (5 bytes):
-        0x07 0xXX 0xXX 0xXX 0xXX
-
-        0x07 - command code
-        0xXX 0xXX 0xXX 0xXX - 64-bit integer containing the number of
-               seconds since 1970
-    """
     @requires_login
     async def get_time_v4(self) -> int:
+        """
+        Get Time, reads the internal clock of the Timeflip.
+
+        Written to the command_input characteristic (1 byte):
+            0x07
+
+            0x07 - command code
+
+        Read from the command_result characteristic (5 bytes):
+            0x07 0xXX 0xXX 0xXX 0xXX
+
+            0x07 - command code
+            0xXX 0xXX 0xXX 0xXX - 64-bit integer containing the number of
+                   seconds since 1970
+        """
+
         command = bytearray(1)
         command[0] = COMMANDS['time_read']
 
         data = await self.write_command_and_read_output(command)
         return int.from_bytes(data[1:5], TIMEFLIP_ENDIANNESS)
 
-    """
-    Set Time, sets the internal clock of the Timeflip. 
-
-    Written to the command_input characteristic (5 bytes):
-
-        0x08 - command code
-        0xXX - 64-bit integer containing the number of 
-        0xXX   seconds since 1970    
-        0xXX 
-        0xXX
-               
-    """
     @requires_login
     async def set_time_v4(self, time) -> None:
+        """
+        Set Time, sets the internal clock of the Timeflip.
+
+        Written to the command_input characteristic (5 bytes):
+
+            0x08 - command code
+            0xXX - 64-bit integer containing the number of
+            0xXX   seconds since 1970
+            0xXX
+            0xXX
+
+        """
         command = bytearray(5)
         command[0] = COMMANDS['time_write']
         command[1:5] = time.to_bytes(4, TIMEFLIP_ENDIANNESS)
 
         await self.write_command(command)
 
-    """
-    Set Brightness, sets the brightness of the Timeflip LEDs.
-
-    Written to the command_input characteristic (2 bytes):
-
-        0x09 - command code
-        0xXX - brightness percent, (0 - 100)
-
-    """
     @requires_login
     async def set_brightness_v4(self, brightness) -> None:
+        """
+        Set Brightness, sets the brightness of the Timeflip LEDs.
+
+        Written to the command_input characteristic (2 bytes):
+
+            0x09 - command code
+            0xXX - brightness percent, (0 - 100)
+
+        """
+
         command = bytearray(2)
         command[0] = COMMANDS['brightness_set']
         command[1] = brightness
 
         await self.write_command(command)
 
-    """
-    Set Blink Frequency, sets the delay between conseutive LED flashes
-    from the Timeflip
-
-    Written to the command_input characteristic (2 bytes):
-
-        0x0A - command code
-        0xXX - delay in seconds, (5 - 60)
-
-    """
     @requires_login
     async def set_blink_frequency_v4(self, blink_frequency) -> None:
+        """
+        Set Blink Frequency, sets the delay between consecutive LED flashes
+        from the Timeflip
+
+        Written to the command_input characteristic (2 bytes):
+
+            0x0A - command code
+            0xXX - delay in seconds, (5 - 60)
+
+        """
+
         command = bytearray(2)
         command[0] = COMMANDS['blink_freq_set']
-        command[1] = brightness
+        command[1] = blink_frequency
 
         await self.write_command(command)
 
-    """
-    Set Facet Color, sets the color in RGB format for a given facet
-    of the Timeflip.
-
-    Written to the command_input characteristic (7 bytes):
-
-        0x11 - command code
-        0xNN - facet to set the color of (0-24)
-        0xRR - amount of red (0-255)
-        0xGG - amount of green (0-255)
-        0xBB - amount of blue (0-255)
-
-    """
     @requires_login
     async def set_color_v4(self, facet: int, rgb: Tuple[int, int, int]):
+        """
+        Set Facet Color, sets the color in RGB format for a given facet
+        of the Timeflip.
+
+        Written to the command_input characteristic (7 bytes):
+
+            0x11 - command code
+            0xNN - facet to set the color of (0-24)
+            0xRR - amount of red (0-255)
+            0xGG - amount of green (0-255)
+            0xBB - amount of blue (0-255)
+
+        """
+
         command = bytearray(5)
         command[0] = COMMANDS['color_set'][0]
         command[1] = facet
@@ -570,25 +575,26 @@ class AsyncClient:
 
         await self.write_command(command)
 
-    """
-    Set Facet command. Used to set the mode of a given facet and the pomodoro
-    time limit, if it is in pomodoro mode.
-
-    Written to the command_input characteristic (7 bytes):
-
-        0x13 0xNN 0xPP 0xTT 0xTT 0xTT 0xTT
-
-        0x13 - command code
-        0xNN - facet number (0 - 24)
-        0xPP - mode 
-            0 for normal
-            1 for pomodoro
-        0xTT 0xTT 0xTT 0xTT - 64-bit unsigned integer for the pomodoro
-                              timer limit in seconds
-
-    """
     @requires_login
     async def set_facet_v4(self, facet: int, mode: int, pomodoro: int) -> None:
+        """
+        Set Facet command. Used to set the mode of a given facet and the pomodoro
+        time limit, if it is in pomodoro mode.
+
+        Written to the command_input characteristic (7 bytes):
+
+            0x13 0xNN 0xPP 0xTT 0xTT 0xTT 0xTT
+
+            0x13 - command code
+            0xNN - facet number (0 - 24)
+            0xPP - mode
+                0 for normal
+                1 for pomodoro
+            0xTT 0xTT 0xTT 0xTT - 64-bit unsigned integer for the pomodoro
+                                  timer limit in seconds
+
+        """
+
         command = bytearray(7)
         command[0] = int.from_bytes(COMMANDS['facet_write'], 'big')
         command[1] = facet
@@ -600,7 +606,7 @@ class AsyncClient:
         del command[:]
 
     @requires_login
-    async def get_facet_v4(self, facet: int) -> Tuple[int, int, int]:
+    async def get_facet_v4(self, facet: int) -> Tuple[int, int, int, int]:
         command = bytearray(2)
         command[0] = int.from_bytes(COMMANDS['facet_read'], 'big')
         command[1] = facet
@@ -619,7 +625,7 @@ class AsyncClient:
     async def get_all_facets_v4(self) -> List[Tuple[int, int, int]]:
         data = []
 
-        for i in range(0,12):
+        for i in range(0, 12):
             facet_data = await self.get_facet(i)
             data.append(facet_data)
 
@@ -634,7 +640,7 @@ class AsyncClient:
         await self.client.start_notify(CHARACTERISTICS['event_data'], event_callback)
 
         self.event_notify_active = True
-    
+
     @requires_login
     async def unregister_notify_event_v4(self):
         await self.client.stop_notify(CHARACTERISTICS['event_data'])
@@ -647,7 +653,7 @@ class AsyncClient:
         """
         command = bytearray(5)
         command[0] = 0x01
-        command[1:5] = event_num.to_bytes(4,'big')
+        command[1:5] = event_num.to_bytes(4, 'big')
 
         await self.base_char_write('history_data', command)
 
@@ -655,8 +661,8 @@ class AsyncClient:
         return (
             int.from_bytes(data[0:4], TIMEFLIP_ENDIANNESS),  # event number
             data[4],
-            int.from_bytes(data[5:13], TIMEFLIP_ENDIANNESS), # timestamp of flip(?)
-            int.from_bytes(data[13:18], 'little') # duration of flip
+            int.from_bytes(data[5:13], TIMEFLIP_ENDIANNESS),  # timestamp of flip(?)
+            int.from_bytes(data[13:18], 'little')  # duration of flip
         )
 
     @requires_login
@@ -672,7 +678,7 @@ class AsyncClient:
         while True:
             command = bytearray(5)
             command[0] = 0x02
-            command[1:5] = event_number.to_bytes(4,'big')
+            command[1:5] = event_number.to_bytes(4, 'big')
 
             await self.base_char_write('history_data', command)
 
@@ -685,10 +691,10 @@ class AsyncClient:
                 int.from_bytes(data[0:4], TIMEFLIP_ENDIANNESS),  # event number
                 data[4],
                 int.from_bytes(data[5:13], TIMEFLIP_ENDIANNESS),  # timestamp of flip(?)
-                int.from_bytes(data[13:18], 'little') # duration of flip
+                int.from_bytes(data[13:18], 'little')  # duration of flip
             ))
-            
-            #increment bytes
+
+            # increment bytes
             event_number = event_number + 1
             del command[:]
 
@@ -699,7 +705,7 @@ class AsyncClient:
         await self.client.start_notify(CHARACTERISTICS['history_data'], history_callback)
 
         self.history_notify_active = True
-    
+
     @requires_login
     async def unregister_notify_history_v4(self):
         await self.client.stop_notify(CHARACTERISTICS['history_data'])
@@ -713,7 +719,7 @@ class AsyncClient:
         await self.client.start_notify(CHARACTERISTICS['facet'], facet_callback)
 
         self.facet_notify_active = True
-    
+
     @requires_login
     async def unregister_notify_facet_v3(self):
         await self.client.stop_notify(CHARACTERISTICS['facet'])
@@ -794,7 +800,7 @@ class AsyncClient:
         .. note::
 
             Pausing does not prevent facet to be notified.
-            It just change the corresponding history facet value to 63.
+            It just changes the corresponding history facet value to 63.
 
         :param state: if state is true, set pause, if it is false, unset pause
         :param force: force command (otherwise, the command is not executed is the state correspond to ``self.paused``)
@@ -829,8 +835,8 @@ class AsyncClient:
 
     """
     Set Auto Pause command. Used to set the number of minutes until the
-    timeflip automatically pauses a timer for a given side. 
-    
+    timeflip automatically pauses a timer for a given side.
+
     Default value is 5 minutes. If this value is set to 0, the timer
     does not automatically pause.
 
@@ -886,7 +892,7 @@ class AsyncClient:
         command = [0x30]
         command.extend(password)
         return await self.write_command(_com(command), check=True)
-    
+
     @requires_login
     async def history_v3(self) -> List[Tuple[int, int, bytearray]]:
         """Get the history
@@ -939,15 +945,13 @@ class AsyncClient:
 
         await self.write_command(COMMANDS['calibration_reset'])
 
-    # 
     async def deprecated_function(self) -> None:
         raise DeprecatedFunctionError()
-    
+
     async def unimplemented_function(self) -> None:
         raise UnimplementedFunctionError()
 
     # async contexts:
-
     async def __aenter__(self):
         await self.connect()
         return self
