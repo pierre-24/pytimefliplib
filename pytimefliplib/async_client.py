@@ -188,10 +188,11 @@ class AsyncClient:
     """TimeFlip asynchronous client
     """
 
-    def __init__(self, 
-        address: str, 
-        disconnected_callback: Optional[Callable[[BleakClient], None]] = None, 
-        adapter=None):
+    def __init__(
+            self,
+            address: str,
+            disconnected_callback: Optional[Callable[[BleakClient], None]] = None,
+            adapter=None):
 
         self.address = address
         self.adapter = adapter
