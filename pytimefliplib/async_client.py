@@ -16,7 +16,7 @@ UUID_TIMEFLIP = 'f119{:x}-71a4-11e6-bdf4-0800200c9a66'
 DEFAULT_PASSWORD = '000000'
 
 BLUETOOTH_ENDIANNESS = 'little'
-TIMEFLIP_ENDIANNESS = BLUETOOTH_ENDIANNESS  # it was not clear, but based on history read out, it is little endian
+TIMEFLIP_ENDIANNESS = 'big'
 
 CHARACTERISTICS = {
     # generic
@@ -188,9 +188,14 @@ class AsyncClient:
     """TimeFlip asynchronous client
     """
 
-    def __init__(self, address: str, disconnected_callback: Optional[Callable[[BleakClient], None]] = None):
+    def __init__(
+            self,
+            address: str,
+            disconnected_callback: Optional[Callable[[BleakClient], None]] = None,
+            adapter=None):
 
         self.address = address
+        self.adapter = adapter
         self.client = None
         self.disconnected_callback = disconnected_callback
 
@@ -237,8 +242,7 @@ class AsyncClient:
     async def connect(self) -> None:
         """Connect to the device
         """
-
-        self.client = BleakClient(self.address, disconnected_callback=self.disconnected_callback)
+        self.client = BleakClient(self.address, disconnected_callback=self.disconnected_callback, adapter=self.adapter)
         self.connected = await self.client.connect()
 
     @requires_connection
@@ -372,11 +376,14 @@ class AsyncClient:
         firmware_revision = await self.firmware_revision()
         self.firmware_version = float(firmware_revision[4:8])
 
-        # For version 4 these functions are different
         if self.firmware_version >= 3.47:
-            # Version 4 protocol appears to use big rather than little
-            # endianness for certain characteristics
-            TIMEFLIP_ENDIANNESS = 'big'
+            # Consistent functions between versions
+            self.get_status = self.get_status_v3
+            self.set_paused = self.set_paused_v3
+            self.set_lock = self.set_lock_v3
+            self.set_auto_pause = self.set_auto_pause_v3
+            self.set_name = self.set_name_v3
+            self.set_password = self.set_password_v3
 
             # New or changed in version 4
             self.get_time = self.get_time_v4
@@ -388,12 +395,18 @@ class AsyncClient:
             self.get_facet = self.get_facet_v4
             self.get_all_facets = self.get_all_facets_v4
             self.get_event = self.get_event_v4
-            self.get_history = self.unimplemented_function
-            self.get_all_history = self.unimplemented_function
+            self.get_history = self.get_history_v4
+            self.get_all_history = self.get_all_history_v4
 
             # Deprecated in version 4
             self.get_calibration_version = self.deprecated_function
             self.set_calibration_version = self.deprecated_function
+        else:
+            self.get_status = self.get_status_v3
+            self.get_calibration_version = \
+                self.get_calibration_version_v3
+            self.set_calibration_version = \
+                self.set_calibration_version_v3
 
         if not await self.login(password):
             raise NotLoggedInError()
@@ -737,10 +750,14 @@ class AsyncClient:
 
         data = await self.write_command_and_read_output(COMMANDS['status'])
 
+        # Turns out when it's locked it doesn't return the rest
+        # of the status information!
+        is_locked = data[0] == 0x01
+
         return {
-            'locked': data[0] == 0x01,
-            'paused': data[1] == 0x01,
-            'auto_pause_time': int.from_bytes(data[2:4], TIMEFLIP_ENDIANNESS)
+            'locked': is_locked,
+            'paused': True if is_locked else data[1] == 0x01,
+            'auto_pause_time': 0 if is_locked else int.from_bytes(data[2:4], TIMEFLIP_ENDIANNESS)
         }
 
     @requires_login
