@@ -14,26 +14,6 @@ class RuntimeClientError(Exception):
     pass
 
 
-def is_valid_addr(addr: str) -> str:
-    """Check if it is a valid MAC address
-    """
-
-    seq = addr.split(':')
-
-    if len(seq) != 6:
-        raise argparse.ArgumentTypeError('{} is not a valid address'.format(addr))
-
-    try:
-        data = [int(x, base=16) for x in seq]
-    except ValueError as e:
-        raise argparse.ArgumentTypeError(e)
-
-    if not all(0 <= x < 256 for x in data):
-        raise argparse.ArgumentTypeError('{} is not a valid address'.format(addr))
-
-    return addr
-
-
 async def connect_and_run(
         args: argparse.Namespace, actions_on_client: Callable[[AsyncClient, argparse.Namespace], Coroutine]):
     try:
@@ -60,7 +40,7 @@ def run_on_client(
     parser = argparse.ArgumentParser(description=doc)
     parser.add_argument('-v', '--version', action='version', version='%(prog)s ' + pytimefliplib.__version__)
 
-    parser.add_argument('-a', '--address', type=is_valid_addr, help='Address of the TimeFlip device', required=True)
+    parser.add_argument('-a', '--address', type=str, help='Address of the TimeFlip device', required=True)
     parser.add_argument('-p', '--password', type=str, help='Password', default=DEFAULT_PASSWORD)
 
     # add extra option
