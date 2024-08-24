@@ -225,7 +225,6 @@ class AsyncClient:
         self.set_name = self.set_name_v3
         self.set_password = self.set_password_v3
         self.get_status = self.get_status_v3
-        self.get_history = self.get_history_v3
         self.get_calibration_version = \
             self.get_calibration_version_v3
         self.set_calibration_version = \
@@ -235,7 +234,6 @@ class AsyncClient:
         self.lock = self.set_lock
         self.pause = self.set_paused
         self.status = self.get_status
-        self.history = self.get_history
 
     # basic BLE actions:
 
